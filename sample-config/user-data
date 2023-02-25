@@ -1,0 +1,8 @@
+#cloud-config
+password: password
+chpasswd: { expire: False }
+ssh_pwauth: True
+packages:
+- linux-cloud-tools-generic
+power_state:
+  mode: poweroff
