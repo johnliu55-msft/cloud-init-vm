@@ -141,6 +141,7 @@ function Get-CloudImage {
 }
 
 function New-CloudInitVHDX {
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory)][string]$Path,
         [string]$MetaDataPath,
@@ -179,7 +180,7 @@ function New-CloudInitVHDX {
         return
     }
 
-    # Create a new VHDX and mount it 
+    # Create a new VHDX and mount it
     New-VHD -Path $Path -SizeBytes $Size -Fixed | Out-Null
     Mount-VHD -Path $Path | Out-Null
     $disk = get-vhd -path $Path
@@ -199,6 +200,7 @@ function New-CloudInitVHDX {
 }
 
 function New-CloudInitVM {
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$CloudImageVHDXPath,
@@ -240,7 +242,7 @@ function Validate {
     # Validate whether VM name exists
     $vm_exists = Get-VM -Name $VMName -ErrorAction SilentlyContinue
     if ($vm_exists) {
-        WriteErrorAndExit "VM name `"$VMName`" already exists" 
+        WriteErrorAndExit "VM name `"$VMName`" already exists"
     }
 }
 #region main
