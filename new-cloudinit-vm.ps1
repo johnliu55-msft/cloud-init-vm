@@ -8,7 +8,8 @@ param (
     [string]$WorkingFolder = '.\work',
     [int64]$VMDiskSize = 40GB,
     [int64]$VMMemoryStartupBytes = 2GB,
-    [string]$VMSwitchName = 'Default Switch'
+    [string]$VMSwitchName = 'Default Switch',
+    [bool]$ClusteredVM = $false
 )
 
 $ErrorActionPreference = "Continue"
@@ -44,6 +45,18 @@ $ErrorActionPreference = "Continue"
     }
 #endregion
 
+function Download {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination
+    )
+
+    Invoke-WebRequest -Uri $Source -OutFile $Destination
+    return $Destination
+}
+
 function Install-QemuImg {
     [CmdletBinding()]
     [OutputType([string])]
@@ -68,7 +81,7 @@ function Install-QemuImg {
     $zip = Split-Path -Path $uri -Leaf
     $target = "$tools\$zip"
     if (-not(Test-Path -Path $target)) {
-        Start-BitsTransfer -Source $uri -Destination $target | Out-Null
+        Download -Source $uri -Destination $target | Out-Null
 
         if ($? -ne $true) {
             WriteError "Failed to download qemu-img"
@@ -121,7 +134,7 @@ function Get-CloudImage {
         WriteWarning "Cloud image `"$img_path`" already exists. Will NOT download the specified URI"
         WriteWarning "Remove `"$img_path`" if you want to download image"
     } else {
-        Start-BitsTransfer -Source $Source -Destination $img_path | Out-Null
+        Download -Source $Source -Destination $img_path | Out-Null
         if (-not($?)) {
             WriteErrorAndExit "Unable to download cloud image"
         }
@@ -265,6 +278,15 @@ if (-not($converted_vhdx_path)) {
 }
 WriteSuccess "Successfully downloaded and converted cloud image to VHDX: $converted_vhdx_path"
 
+# Get default hyper-v virtual disk path
+$disk_path = (Get-VMHost).VirtualHardDiskPath
+if (-not($disk_path)) {
+    WriteWarning "Unable to get default virtual disk path. Use working dir instead: $WorkingFolder"
+    $disk_path = $WorkingFolder
+} else {
+    WriteInfoHighlighted "Virtual disks will be created under default Hyper-V path: $disk_path"
+}
+
 # Create a VM provisioned by cloud-init files
 New-CloudInitVM -Name $VMName `
     -CloudImageVHDXPath  $converted_vhdx_path `
@@ -272,10 +294,15 @@ New-CloudInitVM -Name $VMName `
     -MetaData $MetaData `
     -UserDataPath $UserDataPath `
     -UserData $UserData `
-    -VMDiskFolder $(Join-Path -Path $WorkingFolder -ChildPath 'disks') `
+    -VMDiskFolder $(Join-Path -Path $disk_path -ChildPath 'disks') `
     -VMDiskSize $VMDiskSize `
     -VMMemoryStartupBytes $VMMemoryStartupBytes `
     -VMSwitchName $VMSwitchName
+
+if ($ClusteredVM) {
+    WriteInfoHighlighted "Set the VM as clustered VM"
+    Add-ClusterVirtualMachineRole -VirtualMachine $VMName
+}
 
 Start-VM -Name $VMName
 #endregion
