@@ -40,4 +40,4 @@ See the [link](https://cloudinit.readthedocs.io/en/latest/topics/datasources/noc
 
 # Known issues
 
-- Too inject the cloud-init data into the VM, a virtual disk (VHDX) will be created and mounted to the VM. You will have to manually unmount and remove this virtual disk.
+- To inject the cloud-init data into the VM, a virtual disk (VHDX) will be created and mounted to the VM. You will have to manually unmount and remove this virtual disk.
