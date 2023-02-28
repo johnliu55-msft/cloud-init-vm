@@ -12,7 +12,7 @@ param (
     [bool]$ClusteredVM = $false
 )
 
-$ErrorActionPreference = "Continue"
+$ErrorActionPreference = "Stop"
 
 #region Output logging
     function WriteInfo($message) {
